@@ -6,15 +6,26 @@ create extension if not exists pgcrypto;
 -- ============================================================
 -- Tabella oggetti
 -- ============================================================
+do $$ begin
+  create type unita_misura as enum ('pezzi', 'grammi');
+exception
+  when duplicate_object then null;
+end $$;
+
 create table if not exists oggetti (
   id uuid primary key default gen_random_uuid(),
   nome text not null,
   prezzo numeric(12,2) not null default 0 check (prezzo >= 0),
   quantita integer not null default 0 check (quantita >= 0),
+  unita unita_misura not null default 'pezzi',
   foto_url text,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+-- Se la tabella esisteva gia' senza la colonna unita' (deploy precedenti),
+-- la aggiunge senza toccare i dati esistenti.
+alter table oggetti add column if not exists unita unita_misura not null default 'pezzi';
 
 create or replace function set_updated_at()
 returns trigger as $$

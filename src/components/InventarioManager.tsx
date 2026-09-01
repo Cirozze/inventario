@@ -8,6 +8,7 @@ import { Input, Select } from "@/components/ui/Input";
 import Field from "@/components/ui/Field";
 import Modal from "@/components/ui/Modal";
 import type { Oggetto, MovimentoTipo, DashboardSummary } from "@/types";
+import { formatUnita } from "@/lib/units";
 
 function formatCurrency(value: number): string {
   return new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" }).format(value);
@@ -117,10 +118,11 @@ export default function InventarioManager() {
       if (!res.ok) throw new Error(data.error || "Errore durante il salvataggio");
 
       setModalOpen(false);
+      const unitaLabel = selezionato ? formatUnita(selezionato.unita) : "pz";
       setSuccessMessage(
         tipo === "acquisto"
-          ? `Acquistati ${quantitaNum} pz di ${selezionato?.nome ?? "oggetto"}`
-          : `Venduti ${quantitaNum} pz di ${selezionato?.nome ?? "oggetto"}`
+          ? `Acquistati ${quantitaNum} ${unitaLabel} di ${selezionato?.nome ?? "oggetto"}`
+          : `Venduti ${quantitaNum} ${unitaLabel} di ${selezionato?.nome ?? "oggetto"}`
       );
       await Promise.all([loadOggetti(), loadSummary().catch(() => {})]);
       router.refresh();
@@ -210,7 +212,7 @@ export default function InventarioManager() {
                 <p className="text-sm text-zinc-500">{formatCurrency(o.prezzo)}</p>
               </div>
               <span className="rounded-full bg-blue-500/15 px-3 py-1 text-sm font-semibold text-blue-400">
-                {o.quantita} pz
+                {o.quantita} {formatUnita(o.unita)}
               </span>
             </li>
           ))}
@@ -228,7 +230,7 @@ export default function InventarioManager() {
             >
               {oggetti?.map((o) => (
                 <option key={o.id} value={o.id}>
-                  {o.nome} (disponibili: {o.quantita})
+                  {o.nome} (disponibili: {o.quantita} {formatUnita(o.unita)})
                 </option>
               ))}
             </Select>
@@ -241,7 +243,10 @@ export default function InventarioManager() {
             </Select>
           </Field>
 
-          <Field label="Quantita'" htmlFor="quantita">
+          <Field
+            label={`Quantita' (${selezionato ? formatUnita(selezionato.unita) : "pz"})`}
+            htmlFor="quantita"
+          >
             <Input
               id="quantita"
               type="number"

@@ -38,6 +38,29 @@ export default function DashboardStats() {
           {summary.numeroOggetti}
         </p>
       </div>
+      <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-5">
+        <p className="text-sm text-zinc-500">Speso (acquisti)</p>
+        <p className="mt-1 text-3xl font-semibold tracking-tight text-red-400">
+          -{formatCurrency(summary.totaleSpeso)}
+        </p>
+      </div>
+      <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-5">
+        <p className="text-sm text-zinc-500">Incassato (vendite)</p>
+        <p className="mt-1 text-3xl font-semibold tracking-tight text-emerald-400">
+          +{formatCurrency(summary.totaleIncassato)}
+        </p>
+      </div>
+      <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-5 sm:col-span-2">
+        <p className="text-sm text-zinc-500">Saldo netto</p>
+        <p
+          className={`mt-1 text-3xl font-semibold tracking-tight ${
+            summary.saldoNetto >= 0 ? "text-emerald-400" : "text-red-400"
+          }`}
+        >
+          {summary.saldoNetto >= 0 ? "+" : "-"}
+          {formatCurrency(Math.abs(summary.saldoNetto))}
+        </p>
+      </div>
     </div>
   );
 }

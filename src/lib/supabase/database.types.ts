@@ -1,4 +1,5 @@
 export type MovimentoTipoDb = "acquisto" | "vendita";
+export type UnitaMisuraDb = "pezzi" | "grammi";
 
 export interface Database {
   public: {
@@ -9,6 +10,7 @@ export interface Database {
           nome: string;
           prezzo: number;
           quantita: number;
+          unita: UnitaMisuraDb;
           foto_url: string | null;
           created_at: string;
           updated_at: string;
@@ -18,6 +20,7 @@ export interface Database {
           nome: string;
           prezzo?: number;
           quantita?: number;
+          unita?: UnitaMisuraDb;
           foto_url?: string | null;
           created_at?: string;
           updated_at?: string;
@@ -27,6 +30,7 @@ export interface Database {
           nome?: string;
           prezzo?: number;
           quantita?: number;
+          unita?: UnitaMisuraDb;
           foto_url?: string | null;
           created_at?: string;
           updated_at?: string;
@@ -109,6 +113,7 @@ export interface Database {
     };
     Enums: {
       movimento_tipo: MovimentoTipoDb;
+      unita_misura: UnitaMisuraDb;
     };
     CompositeTypes: Record<string, never>;
   };

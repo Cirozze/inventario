@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import type { Movimento, Oggetto } from "@/types";
 import { Select } from "@/components/ui/Input";
 import Field from "@/components/ui/Field";
+import { formatUnita } from "@/lib/units";
 
 function formatCurrency(value: number): string {
   return new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" }).format(value);
@@ -104,7 +105,9 @@ export default function MovimentiTable() {
                       {m.tipo}
                     </span>
                   </td>
-                  <td className="px-3 py-2.5 text-right">{m.quantita}</td>
+                  <td className="px-3 py-2.5 text-right">
+                    {m.quantita} {m.oggetti ? formatUnita(m.oggetti.unita) : ""}
+                  </td>
                   <td className="px-3 py-2.5 text-right">{formatCurrency(m.prezzo_unitario)}</td>
                   <td className="px-3 py-2.5 text-right font-medium text-zinc-100">
                     {formatCurrency(m.totale)}

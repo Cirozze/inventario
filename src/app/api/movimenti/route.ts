@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
   const supabase = getSupabaseServerClient();
   let query = supabase
     .from("movimenti")
-    .select("*, oggetti(nome)")
+    .select("*, oggetti(nome, unita)")
     .order("data", { ascending: sort });
 
   if (oggettoId) {

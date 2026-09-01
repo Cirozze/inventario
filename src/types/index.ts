@@ -1,10 +1,12 @@
 export type MovimentoTipo = "acquisto" | "vendita";
+export type UnitaMisura = "pezzi" | "grammi";
 
 export interface Oggetto {
   id: string;
   nome: string;
   prezzo: number;
   quantita: number;
+  unita: UnitaMisura;
   foto_url: string | null;
   created_at: string;
   updated_at: string;
@@ -20,6 +22,7 @@ export interface Movimento {
   data: string;
   oggetti?: {
     nome: string;
+    unita: UnitaMisura;
   } | null;
 }
 

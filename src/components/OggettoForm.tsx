@@ -4,9 +4,10 @@ import { FormEvent, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Button from "@/components/ui/Button";
-import { Input } from "@/components/ui/Input";
+import { Input, Select } from "@/components/ui/Input";
 import Field from "@/components/ui/Field";
-import type { Oggetto } from "@/types";
+import type { Oggetto, UnitaMisura } from "@/types";
+import { UNITA_OPTIONS } from "@/lib/units";
 
 interface OggettoFormProps {
   oggetto?: Oggetto;
@@ -18,6 +19,7 @@ export default function OggettoForm({ oggetto }: OggettoFormProps) {
 
   const [nome, setNome] = useState(oggetto?.nome ?? "");
   const [prezzo, setPrezzo] = useState(oggetto?.prezzo?.toString() ?? "0");
+  const [unita, setUnita] = useState<UnitaMisura>(oggetto?.unita ?? "pezzi");
   const [fotoUrl, setFotoUrl] = useState<string | null>(oggetto?.foto_url ?? null);
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -65,6 +67,7 @@ export default function OggettoForm({ oggetto }: OggettoFormProps) {
       const payload = {
         nome: nome.trim(),
         prezzo: prezzoNum,
+        unita,
         foto_url: fotoUrl,
       };
 
@@ -101,6 +104,20 @@ export default function OggettoForm({ oggetto }: OggettoFormProps) {
           onChange={(e) => setPrezzo(e.target.value)}
           required
         />
+      </Field>
+
+      <Field label="Unita' di misura" htmlFor="unita">
+        <Select
+          id="unita"
+          value={unita}
+          onChange={(e) => setUnita(e.target.value as UnitaMisura)}
+        >
+          {UNITA_OPTIONS.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
+        </Select>
       </Field>
 
       <Field label="Foto" htmlFor="foto">

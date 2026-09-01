@@ -7,6 +7,7 @@ import Image from "next/image";
 import type { Oggetto } from "@/types";
 import Button from "@/components/ui/Button";
 import ConfirmModal from "@/components/ui/ConfirmModal";
+import { formatUnita } from "@/lib/units";
 
 function formatCurrency(value: number): string {
   return new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" }).format(value);
@@ -91,7 +92,7 @@ export default function OggettiList() {
             <div className="flex-1">
               <p className="font-medium text-zinc-100">{oggetto.nome}</p>
               <p className="text-sm text-zinc-500">
-                {formatCurrency(oggetto.prezzo)} &middot; {oggetto.quantita} pz
+                {formatCurrency(oggetto.prezzo)} &middot; {oggetto.quantita} {formatUnita(oggetto.unita)}
               </p>
             </div>
 

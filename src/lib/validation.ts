@@ -5,6 +5,7 @@ import { z } from "zod";
 export const oggettoInputSchema = z.object({
   nome: z.string().trim().min(1, "Il nome e' obbligatorio"),
   prezzo: z.coerce.number().min(0, "Il prezzo non puo' essere negativo"),
+  unita: z.enum(["pezzi", "grammi"]).default("pezzi"),
   foto_url: z.string().url().nullable().optional(),
 });
 

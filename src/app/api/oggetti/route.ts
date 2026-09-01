@@ -38,6 +38,7 @@ export async function POST(request: NextRequest) {
     .insert({
       nome: parsed.data.nome,
       prezzo: parsed.data.prezzo,
+      unita: parsed.data.unita,
       foto_url: parsed.data.foto_url ?? null,
     })
     .select("*")
