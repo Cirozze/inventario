@@ -20,3 +20,7 @@ export const movimentoInputSchema = z.object({
     .positive("La quantita' deve essere maggiore di zero"),
   prezzo_unitario: z.coerce.number().min(0, "Il prezzo unitario non puo' essere negativo"),
 });
+
+export const movimentoUpdateSchema = z.object({
+  prezzo_unitario: z.coerce.number().min(0, "Il prezzo unitario non puo' essere negativo"),
+});

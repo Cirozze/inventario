@@ -1,9 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import type { Movimento, Oggetto } from "@/types";
-import { Select } from "@/components/ui/Input";
+import { Input, Select } from "@/components/ui/Input";
 import Field from "@/components/ui/Field";
+import Button from "@/components/ui/Button";
+import Modal from "@/components/ui/Modal";
 import { formatUnita } from "@/lib/units";
 
 function formatCurrency(value: number): string {
@@ -22,14 +24,9 @@ export default function MovimentiTable() {
   const [oggettoId, setOggettoId] = useState("");
   const [sort, setSort] = useState<"desc" | "asc">("desc");
   const [error, setError] = useState<string | null>(null);
+  const [editing, setEditing] = useState<Movimento | null>(null);
 
-  useEffect(() => {
-    fetch("/api/oggetti", { cache: "no-store" })
-      .then((res) => res.json())
-      .then((data) => setOggetti(data.oggetti ?? []));
-  }, []);
-
-  useEffect(() => {
+  function caricaMovimenti() {
     setMovimenti(null);
     const params = new URLSearchParams();
     if (oggettoId) params.set("oggetto_id", oggettoId);
@@ -42,7 +39,15 @@ export default function MovimentiTable() {
       })
       .then((data) => setMovimenti(data.movimenti))
       .catch((err) => setError(err.message));
-  }, [oggettoId, sort]);
+  }
+
+  useEffect(() => {
+    fetch("/api/oggetti", { cache: "no-store" })
+      .then((res) => res.json())
+      .then((data) => setOggetti(data.oggetti ?? []));
+  }, []);
+
+  useEffect(caricaMovimenti, [oggettoId, sort]);
 
   return (
     <div className="flex flex-col gap-4">
@@ -87,6 +92,7 @@ export default function MovimentiTable() {
                 <th className="px-3 py-2.5 text-right">Quantita'</th>
                 <th className="px-3 py-2.5 text-right">Prezzo unit.</th>
                 <th className="px-3 py-2.5 text-right">Totale</th>
+                <th className="px-3 py-2.5" />
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-800">
@@ -112,12 +118,113 @@ export default function MovimentiTable() {
                   <td className="px-3 py-2.5 text-right font-medium text-zinc-100">
                     {formatCurrency(m.totale)}
                   </td>
+                  <td className="px-3 py-2.5 text-right">
+                    <button
+                      onClick={() => setEditing(m)}
+                      className="text-xs font-medium text-blue-400 transition-colors hover:text-blue-300"
+                    >
+                      Modifica prezzo
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
       )}
+
+      <ModificaPrezzoModal
+        movimento={editing}
+        onClose={() => setEditing(null)}
+        onSaved={() => {
+          setEditing(null);
+          caricaMovimenti();
+        }}
+      />
     </div>
+  );
+}
+
+interface ModificaPrezzoModalProps {
+  movimento: Movimento | null;
+  onClose: () => void;
+  onSaved: () => void;
+}
+
+function ModificaPrezzoModal({ movimento, onClose, onSaved }: ModificaPrezzoModalProps) {
+  const [prezzo, setPrezzo] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (movimento) {
+      setPrezzo(movimento.prezzo_unitario.toString());
+      setError(null);
+    }
+  }, [movimento]);
+
+  async function handleSubmit(event: FormEvent) {
+    event.preventDefault();
+    if (!movimento) return;
+
+    const prezzoNum = Number(prezzo);
+    if (Number.isNaN(prezzoNum) || prezzoNum < 0) {
+      setError("Il prezzo unitario non puo' essere negativo");
+      return;
+    }
+
+    setSaving(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/movimenti/${movimento.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prezzo_unitario: prezzoNum }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Errore durante il salvataggio");
+      onSaved();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Errore sconosciuto");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Modal open={Boolean(movimento)} onClose={onClose} title="Correggi prezzo unitario">
+      {movimento && (
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+          <p className="text-sm text-zinc-500">
+            {movimento.oggetti?.nome ?? "Oggetto"} · {movimento.quantita}{" "}
+            {movimento.oggetti ? formatUnita(movimento.oggetti.unita) : ""} · {movimento.tipo}
+          </p>
+
+          <Field label="Prezzo unitario (EUR)" htmlFor="prezzoModifica">
+            <Input
+              id="prezzoModifica"
+              type="number"
+              min="0"
+              step="0.01"
+              value={prezzo}
+              onChange={(e) => setPrezzo(e.target.value)}
+              required
+              autoFocus
+            />
+          </Field>
+
+          {error && <p className="text-sm text-red-400">{error}</p>}
+
+          <div className="flex gap-2">
+            <Button type="submit" disabled={saving}>
+              {saving ? "Salvataggio..." : "Salva"}
+            </Button>
+            <Button type="button" variant="secondary" onClick={onClose}>
+              Annulla
+            </Button>
+          </div>
+        </form>
+      )}
+    </Modal>
   );
 }
