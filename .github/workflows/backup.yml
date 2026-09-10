@@ -9,8 +9,10 @@ jobs:
   backup:
     runs-on: ubuntu-latest
     steps:
-      - name: Install postgresql-client
-        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
 
       - name: Checkout backups branch
         run: |
@@ -21,14 +23,34 @@ jobs:
             git rm -rf . 2>/dev/null || true
           )
 
-      - name: Dump and encrypt database
+      - name: Export data via Supabase API
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          npm install @supabase/supabase-js --no-save --no-audit --no-fund
+          node -e '
+            const { createClient } = require("@supabase/supabase-js");
+            const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+            (async () => {
+              const tabelle = ["oggetti", "movimenti", "impostazioni"];
+              const dump = {};
+              for (const tabella of tabelle) {
+                const { data, error } = await supabase.from(tabella).select("*");
+                if (error) throw error;
+                dump[tabella] = data;
+              }
+              require("fs").writeFileSync("dump.json", JSON.stringify(dump, null, 2));
+            })().catch((err) => { console.error(err); process.exit(1); });
+          '
+
+      - name: Encrypt and save backup
         run: |
           mkdir -p repo/backups
-          pg_dump "${{ secrets.SUPABASE_DB_URL }}" --no-owner --no-privileges > "dump.sql"
           echo "${{ secrets.BACKUP_ENCRYPTION_PASSPHRASE }}" | gpg --batch --yes --passphrase-fd 0 \
             --symmetric --cipher-algo AES256 \
-            -o "repo/backups/backup-$(date +%F).sql.gpg" "dump.sql"
-          rm -f dump.sql
+            -o "repo/backups/backup-$(date +%F).json.gpg" "dump.json"
+          rm -f dump.json
 
       - name: Commit and push
         run: |
