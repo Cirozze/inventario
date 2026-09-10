@@ -1,0 +1,40 @@
+name: Backup database
+
+on:
+  schedule:
+    - cron: "0 3 * * *"
+  workflow_dispatch: {}
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install postgresql-client
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+
+      - name: Checkout backups branch
+        run: |
+          git clone --depth 1 --branch backups "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" repo 2>/dev/null || (
+            git clone --depth 1 "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" repo &&
+            cd repo &&
+            git checkout --orphan backups &&
+            git rm -rf . 2>/dev/null || true
+          )
+
+      - name: Dump and encrypt database
+        run: |
+          mkdir -p repo/backups
+          pg_dump "${{ secrets.SUPABASE_DB_URL }}" --no-owner --no-privileges > "dump.sql"
+          echo "${{ secrets.BACKUP_ENCRYPTION_PASSPHRASE }}" | gpg --batch --yes --passphrase-fd 0 \
+            --symmetric --cipher-algo AES256 \
+            -o "repo/backups/backup-$(date +%F).sql.gpg" "dump.sql"
+          rm -f dump.sql
+
+      - name: Commit and push
+        run: |
+          cd repo
+          git config user.name "backup-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add backups/
+          git commit -m "Backup $(date +%F)" || echo "Nessuna modifica da salvare"
+          git push origin backups
