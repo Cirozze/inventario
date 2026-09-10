@@ -55,3 +55,18 @@ export async function PATCH(request: NextRequest, { params }: Params) {
 
   return NextResponse.json({ movimento: data });
 }
+
+// Elimina il movimento e annulla il suo effetto sulla scorta (un acquisto
+// viene sottratto, una vendita riaggiunta), come se non fosse mai avvenuto.
+export async function DELETE(_request: NextRequest, { params }: Params) {
+  const supabase = getSupabaseServerClient();
+  const { error } = await supabase.rpc("elimina_movimento", {
+    p_movimento_id: params.id,
+  });
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 400 });
+  }
+
+  return NextResponse.json({ ok: true });
+}

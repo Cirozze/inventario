@@ -110,6 +110,12 @@ export interface Database {
           data: string;
         };
       };
+      elimina_movimento: {
+        Args: {
+          p_movimento_id: string;
+        };
+        Returns: undefined;
+      };
     };
     Enums: {
       movimento_tipo: MovimentoTipoDb;

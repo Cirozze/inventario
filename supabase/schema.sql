@@ -123,6 +123,43 @@ end;
 $$ language plpgsql security definer;
 
 -- ============================================================
+-- Elimina un movimento annullandone l'effetto sulla scorta, come se non
+-- fosse mai stato registrato (un acquisto viene sottratto, una vendita
+-- riaggiunta). Blocca la riga oggetti per evitare race condition, e
+-- rifiuta l'eliminazione se annullare un acquisto porterebbe la scorta
+-- sotto zero (segno che quello stock e' gia' stato in parte rivenduto).
+-- ============================================================
+create or replace function elimina_movimento(
+  p_movimento_id uuid
+) returns void as $$
+declare
+  v_movimento movimenti;
+  v_stock integer;
+begin
+  select * into v_movimento from movimenti where id = p_movimento_id;
+  if not found then
+    raise exception 'Movimento non trovato';
+  end if;
+
+  select quantita into v_stock from oggetti where id = v_movimento.oggetto_id for update;
+  if not found then
+    raise exception 'Oggetto non trovato';
+  end if;
+
+  if v_movimento.tipo = 'acquisto' then
+    if v_stock < v_movimento.quantita then
+      raise exception 'Impossibile eliminare: parte di questo acquisto risulta gia'' venduta';
+    end if;
+    update oggetti set quantita = quantita - v_movimento.quantita where id = v_movimento.oggetto_id;
+  else
+    update oggetti set quantita = quantita + v_movimento.quantita where id = v_movimento.oggetto_id;
+  end if;
+
+  delete from movimenti where id = p_movimento_id;
+end;
+$$ language plpgsql security definer;
+
+-- ============================================================
 -- Storage: crea manualmente (o via questo blocco) un bucket pubblico
 -- per le foto degli oggetti. Nome di default: foto-oggetti
 -- (deve corrispondere a SUPABASE_STORAGE_BUCKET nel .env)

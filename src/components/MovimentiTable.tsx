@@ -6,6 +6,7 @@ import { Input, Select } from "@/components/ui/Input";
 import Field from "@/components/ui/Field";
 import Button from "@/components/ui/Button";
 import Modal from "@/components/ui/Modal";
+import ConfirmModal from "@/components/ui/ConfirmModal";
 import { formatUnita } from "@/lib/units";
 
 function formatCurrency(value: number): string {
@@ -25,6 +26,9 @@ export default function MovimentiTable() {
   const [sort, setSort] = useState<"desc" | "asc">("desc");
   const [error, setError] = useState<string | null>(null);
   const [editing, setEditing] = useState<Movimento | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<Movimento | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   function caricaMovimenti() {
     setMovimenti(null);
@@ -48,6 +52,23 @@ export default function MovimentiTable() {
   }, []);
 
   useEffect(caricaMovimenti, [oggettoId, sort]);
+
+  async function confermaEliminazione() {
+    if (!pendingDelete) return;
+    setDeleting(true);
+    setDeleteError(null);
+    try {
+      const res = await fetch(`/api/movimenti/${pendingDelete.id}`, { method: "DELETE" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Errore durante l'eliminazione");
+      setPendingDelete(null);
+      caricaMovimenti();
+    } catch (err) {
+      setDeleteError(err instanceof Error ? err.message : "Errore sconosciuto");
+    } finally {
+      setDeleting(false);
+    }
+  }
 
   return (
     <div className="flex flex-col gap-4">
@@ -119,12 +140,20 @@ export default function MovimentiTable() {
                     {formatCurrency(m.totale)}
                   </td>
                   <td className="px-3 py-2.5 text-right">
-                    <button
-                      onClick={() => setEditing(m)}
-                      className="text-xs font-medium text-blue-400 transition-colors hover:text-blue-300"
-                    >
-                      Modifica prezzo
-                    </button>
+                    <div className="flex justify-end gap-3">
+                      <button
+                        onClick={() => setEditing(m)}
+                        className="text-xs font-medium text-blue-400 transition-colors hover:text-blue-300"
+                      >
+                        Modifica prezzo
+                      </button>
+                      <button
+                        onClick={() => setPendingDelete(m)}
+                        className="text-xs font-medium text-red-400 transition-colors hover:text-red-300"
+                      >
+                        Elimina
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -139,6 +168,25 @@ export default function MovimentiTable() {
         onSaved={() => {
           setEditing(null);
           caricaMovimenti();
+        }}
+      />
+
+      <ConfirmModal
+        open={pendingDelete !== null}
+        title="Eliminare il movimento?"
+        message={
+          pendingDelete
+            ? `${pendingDelete.oggetti?.nome ?? "Oggetto"} · ${pendingDelete.tipo} di ${pendingDelete.quantita} ${pendingDelete.oggetti ? formatUnita(pendingDelete.oggetti.unita) : ""}. La scorta dell'oggetto verra' ripristinata come se il movimento non fosse mai avvenuto. Azione irreversibile.`
+            : ""
+        }
+        confirmLabel="Elimina"
+        danger
+        loading={deleting}
+        error={deleteError}
+        onConfirm={confermaEliminazione}
+        onCancel={() => {
+          setPendingDelete(null);
+          setDeleteError(null);
         }}
       />
     </div>
